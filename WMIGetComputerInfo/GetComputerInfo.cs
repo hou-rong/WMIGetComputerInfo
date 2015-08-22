@@ -437,6 +437,7 @@ namespace WMIGetComputerInfo
                 {
                     e.Nodes.Clear();
 
+                    //Add API_NAME Node
                     foreach (string nodeName in searchQuery[e.Name])
                     {
                         TreeNode tn = new TreeNode();
@@ -453,13 +454,16 @@ namespace WMIGetComputerInfo
                     //ChildNode API_NAME
                     e.Nodes.Clear();
 
+                    //Determine whether it is API_Name
                     int count = 0;
                     foreach (var a in Regex.Matches(e.Name, "Win32_"))
                     {
                         count++;
                     }
+
                     if (count > 0)
                     {
+                        //Add Devices and Service Node
                         try
                         {
                             ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from " + e.Name);
@@ -482,13 +486,13 @@ namespace WMIGetComputerInfo
                     }
                     else
                     {
-                        //ChildNode Device or Services Name
+                        //ChildNode Devices or Services Name
                         InforMationView.Items.Clear();
 
                         //Deal with old tree node logic
                         if (e == oldChildNode)
                         {
-                            //跳過
+                            //Skip
                         }
                         else
                         {
@@ -516,11 +520,11 @@ namespace WMIGetComputerInfo
 
                             foreach (ManagementObject result in searcher.Get())
                             {
+                                //Add listview title
                                 ListViewGroup lvg = new ListViewGroup();
                                 try
                                 {
                                     lvg = InforMationView.Groups.Add(result["Name"].ToString(), result["Name"].ToString());
-
                                 }
                                 catch
                                 {
@@ -531,6 +535,7 @@ namespace WMIGetComputerInfo
                                     MessageBox.Show("No Info");
                                 }
 
+                                //Set Listview items and color
                                 foreach (PropertyData pd in result.Properties)
                                 {
                                     ListViewItem item = new ListViewItem(lvg);
@@ -548,6 +553,7 @@ namespace WMIGetComputerInfo
 
                                     if (pd.Value != null && pd.Value.ToString() != "")
                                     {
+                                        //pd.Value has three value type, set each type of value one by one
                                         switch (pd.Value.GetType().ToString())
                                         {
                                             case "System.String[]":
@@ -587,4 +593,4 @@ namespace WMIGetComputerInfo
 }
 //無效類，提供的程序無法進行操作等，是否可以在程序沒有運行的時候清除這些分支
 //運行卡死UI問題,async解決
-//搜索出來的結果中有Name相同的，導致右側欄目多打印了
+//搜索出來的結果中有Name相同的，導致右側欄目多打印了,多打印不好解決，但是可以將其用乘法寫在左邊啊
