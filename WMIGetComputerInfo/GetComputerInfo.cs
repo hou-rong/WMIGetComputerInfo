@@ -625,21 +625,77 @@ namespace WMIGetComputerInfo
             tn.Nodes.Add("");
         }
 
+        //private void test(TreeNode e)
+        //{
+        //    using(BackgroundWorker bw = new BackgroundWorker())
+        //    {
+        //        bw.RunWorkerCompleted += new RunWorkerCompletedEventHandler(WorkComplete);
+        //        bw.DoWork += new DoWorkEventHandler(DoWork);
+        //        bw.WorkerReportsProgress.ToString();
+        //        bw.RunWorkerAsync(e);
+        //    }
+        //}
+
+        //private void DoWork(object sender, DoWorkEventArgs events)
+        //{
+        //    ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from " + ((TreeNode)events.Argument).Name);
+        //    object[] res = { searcher.Get(), events.Argument };
+        //    events.Result = res;
+        //}
+
+        //private void WorkComplete(object sender, RunWorkerCompletedEventArgs events)
+        //{
+        //    object[] result = (object[])events.Result;
+        //    try
+        //    {
+        //        TreeNode e = (TreeNode)result[1];
+
+        //        foreach (ManagementObject res in (ManagementObjectCollection)result[0])
+        //        {
+        //            TreeNode tn = new TreeNode();
+        //            string name = res["Name"].ToString();
+        //            tn.Name = name;
+        //            tn.Text = name;
+        //            tn.Tag = name;
+
+        //            e.Nodes.Add(tn);
+        //            tn.Nodes.Add("");
+        //        }
+        //        e.Expand();
+        //    }
+        //    catch (Exception exc)
+        //    {
+        //        MessageBox.Show(exc.Message);
+        //    }
+        //}
+
         private void test(TreeNode e)
         {
             using(BackgroundWorker bw = new BackgroundWorker())
             {
-                bw.RunWorkerCompleted += new RunWorkerCompletedEventHandler(WorkComplete);
                 bw.DoWork += new DoWorkEventHandler(DoWork);
+                bw.RunWorkerCompleted += new RunWorkerCompletedEventHandler(WorkComplete);
                 bw.RunWorkerAsync(e);
             }
         }
 
-        private void DoWork(object sender, DoWorkEventArgs events)
+        private void DoWork(object sender,DoWorkEventArgs events)
         {
             ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from " + ((TreeNode)events.Argument).Name);
-            object[] res = { searcher.Get(), events.Argument };
-            events.Result = searcher.Get();
+            try
+            {
+                string[] result = new string[searcher.Get().Count];
+                int count = 0;
+                foreach (ManagementObject res in searcher.Get())
+                {
+                    result[count++] = res["Name"].ToString();
+                }
+                events.Result = result;
+            }
+            catch (Exception exc)
+            {
+                MessageBox.Show(exc.Message);
+            }
         }
 
         private void WorkComplete(object sender,RunWorkerCompletedEventArgs events)
@@ -647,24 +703,18 @@ namespace WMIGetComputerInfo
             try
             {
                 TreeNode e = clickNode;
-                if (events.Result != null)
+                foreach (string name in (string[])events.Result)
                 {
-                    foreach (ManagementObject res in (ManagementObjectCollection)events.Result)
-                    {
-                        TreeNode tn = new TreeNode();
-                        string name = res["Name"].ToString();
-                        tn.Name = name;
-                        tn.Text = name;
-                        tn.Tag = name;
+                    TreeNode tn = new TreeNode();
+                    tn.Name = name;
+                    tn.Text = name;
+                    tn.Tag = name;
 
-                        e.Nodes.Add(tn);
-                        tn.Nodes.Add("");
-                    }
+                    e.Nodes.Add(tn);
+                    tn.Nodes.Add("");
                 }
-
-                e.Expand();
             }
-            catch(Exception exc) { MessageBox.Show(exc.Message); }
+            catch { }
         }
     }
 }

@@ -32,6 +32,7 @@
             this.InforMationView = new System.Windows.Forms.ListView();
             this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.progressBar1 = new System.Windows.Forms.ProgressBar();
             this.SuspendLayout();
             // 
             // attributeTree
@@ -41,7 +42,6 @@
             this.attributeTree.Size = new System.Drawing.Size(268, 580);
             this.attributeTree.TabIndex = 0;
             this.attributeTree.BeforeExpand += new System.Windows.Forms.TreeViewCancelEventHandler(this.attributeTree_BeforeExpand);
-            //this.attributeTree.AfterExpand += new System.Windows.Forms.TreeViewEventHandler(this.attributeTree_AfterExpand);
             // 
             // InforMationView
             // 
@@ -65,11 +65,19 @@
             this.columnHeader2.Text = "Value";
             this.columnHeader2.Width = 358;
             // 
+            // progressBar1
+            // 
+            this.progressBar1.Location = new System.Drawing.Point(12, 599);
+            this.progressBar1.Name = "progressBar1";
+            this.progressBar1.Size = new System.Drawing.Size(856, 23);
+            this.progressBar1.TabIndex = 2;
+            // 
             // GetComputerInfo
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(880, 605);
+            this.ClientSize = new System.Drawing.Size(880, 630);
+            this.Controls.Add(this.progressBar1);
             this.Controls.Add(this.InforMationView);
             this.Controls.Add(this.attributeTree);
             this.Name = "GetComputerInfo";
@@ -85,6 +93,7 @@
         private System.Windows.Forms.ListView InforMationView;
         private System.Windows.Forms.ColumnHeader columnHeader1;
         private System.Windows.Forms.ColumnHeader columnHeader2;
+        private System.Windows.Forms.ProgressBar progressBar1;
     }
 }
 
