@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using System.Management;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace WMIGetComputerInfo
 {
@@ -18,6 +19,7 @@ namespace WMIGetComputerInfo
         public string ComputerName = string.Empty;
         Dictionary<string, string[]> searchQuery = new Dictionary<string, string[]>();
         TreeNode oldChildNode;
+        private delegate void Add(TreeNode e);
 
         public GetComputerInfo()
         {
@@ -415,14 +417,17 @@ namespace WMIGetComputerInfo
             rootNode.Expand();
         }
 
-        private void attributeTree_AfterExpand(object sender, TreeViewEventArgs e)
-        {
-            e.Node.Expand();
-        }
+        //private void attributeTree_AfterExpand(object sender, TreeViewEventArgs e)
+        //{
+        //    e.Node.Expand();
+        //}
 
         private void attributeTree_BeforeExpand(object sender, TreeViewCancelEventArgs e)
         {
             AddTreeViewItems(e.Node);
+
+
+
         }
         private void AddTreeViewItems(TreeNode e)
         {
@@ -451,7 +456,7 @@ namespace WMIGetComputerInfo
                 else
                 {
                     //ChildNode API_NAME
-                    e.Nodes.Clear();
+                    //e.Nodes.Clear();
 
                     int count = 0;
                     foreach (var a in Regex.Matches(e.Name, "Win32_"))
@@ -460,25 +465,10 @@ namespace WMIGetComputerInfo
                     }
                     if (count > 0)
                     {
-                        try
-                        {
-                            ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from " + e.Name);
-                            foreach (ManagementObject res in searcher.Get())
-                            {
-                                TreeNode tn = new TreeNode();
-                                string name = res["Name"].ToString();
-                                tn.Name = name;
-                                tn.Text = name;
-                                tn.Tag = name;
-
-                                e.Nodes.Add(tn);
-                                tn.Nodes.Add("");
-                            }
-                        }
-                        catch (Exception except)
-                        {
-                            MessageBox.Show(except.Message);
-                        }
+                        //attributeTree.Invoke(new Add(_AddDeviceAndServiceName),new object[] { e });
+                        //_AddDeviceAndServiceName(e);
+                        clickNode = e;
+                        test(e);
                     }
                     else
                     {
@@ -510,7 +500,7 @@ namespace WMIGetComputerInfo
                             //update ListView
                             string tmpString = string.Format(@"select * from {0} where Name = '{1}'", e.Parent.Name, e.Name.AsQueryable());
                             //build Query String
-                            string queryString = tmpString.Replace(@"\",@"\\");
+                            string queryString = tmpString.Replace(@"\", @"\\");
 
                             ManagementObjectSearcher searcher = new ManagementObjectSearcher(queryString);
 
@@ -582,6 +572,99 @@ namespace WMIGetComputerInfo
                     }
                 }
             }
+        }
+
+        protected TreeNode clickNode;
+
+        private void _AddDeviceAndServiceName(TreeNode e)
+        {
+
+            clickNode = e;
+            Thread t1 = new Thread(new ThreadStart(searchData));
+            t1.Start();
+        }
+
+        private void searchData()
+        {
+            TreeNode e = clickNode;
+            try
+            {
+                ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from " + e.Name);
+                foreach (ManagementObject res in searcher.Get())
+                {
+                    
+                    attributeTree.Invoke(new _addNodes(addNodes), new object[] { e, res["Name"].ToString() });
+                    //TreeNode tn = new TreeNode();
+                    //string name = res["Name"].ToString();
+                    //tn.Name = name;
+                    //tn.Text = name;
+                    //tn.Tag = name;
+
+                    //e.Nodes.Add(tn);
+                    //tn.Nodes.Add("");
+                }
+            }
+            catch(Exception except)
+            {
+                MessageBox.Show(except.Message);
+            }
+        }
+
+        private delegate void _addNodes(TreeNode e, string name);
+
+        private void addNodes(TreeNode e, string name)
+        {
+            Controls.AddRange(new Control[] { attributeTree });
+            TreeNode tn = new TreeNode();
+            //string name = res["Name"].ToString();
+            tn.Name = name;
+            tn.Text = name;
+            tn.Tag = name;
+
+            e.Nodes.Add(tn);
+            tn.Nodes.Add("");
+        }
+
+        private void test(TreeNode e)
+        {
+            using(BackgroundWorker bw = new BackgroundWorker())
+            {
+                bw.RunWorkerCompleted += new RunWorkerCompletedEventHandler(WorkComplete);
+                bw.DoWork += new DoWorkEventHandler(DoWork);
+                bw.RunWorkerAsync(e);
+            }
+        }
+
+        private void DoWork(object sender, DoWorkEventArgs events)
+        {
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from " + ((TreeNode)events.Argument).Name);
+            object[] res = { searcher.Get(), events.Argument };
+            events.Result = searcher.Get();
+        }
+
+        private void WorkComplete(object sender,RunWorkerCompletedEventArgs events)
+        {
+            try
+            {
+                TreeNode e = clickNode;
+                if (events.Result != null)
+                {
+                    foreach (ManagementObject res in (ManagementObjectCollection)events.Result)
+                    {
+                        TreeNode tn = new TreeNode();
+                        string name = res["Name"].ToString();
+                        tn.Name = name;
+                        tn.Text = name;
+                        tn.Tag = name;
+
+                        e.Nodes.Add(tn);
+                        tn.Nodes.Add("");
+                    }
+                }
+
+                e.Expand();
+            }
+            catch(Exception exc) { MessageBox.Show(exc.Message); }
         }
     }
 }

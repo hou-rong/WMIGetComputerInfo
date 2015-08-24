@@ -41,7 +41,7 @@
             this.attributeTree.Size = new System.Drawing.Size(268, 580);
             this.attributeTree.TabIndex = 0;
             this.attributeTree.BeforeExpand += new System.Windows.Forms.TreeViewCancelEventHandler(this.attributeTree_BeforeExpand);
-            this.attributeTree.AfterExpand += new System.Windows.Forms.TreeViewEventHandler(this.attributeTree_AfterExpand);
+            //this.attributeTree.AfterExpand += new System.Windows.Forms.TreeViewEventHandler(this.attributeTree_AfterExpand);
             // 
             // InforMationView
             // 
