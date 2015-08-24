@@ -19,7 +19,6 @@ namespace WMIGetComputerInfo
         public string ComputerName = string.Empty;
         Dictionary<string, string[]> searchQuery = new Dictionary<string, string[]>();
         TreeNode oldChildNode;
-        private delegate void Add(TreeNode e);
 
         public GetComputerInfo()
         {
@@ -341,6 +340,7 @@ namespace WMIGetComputerInfo
             };
             searchQuery.Add("Developer", developerValue);
         }
+
         private void Form1_Load(object sender, EventArgs e)
         {
             ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from Win32_ComputerSystem");
@@ -417,18 +417,11 @@ namespace WMIGetComputerInfo
             rootNode.Expand();
         }
 
-        //private void attributeTree_AfterExpand(object sender, TreeViewEventArgs e)
-        //{
-        //    e.Node.Expand();
-        //}
-
         private void attributeTree_BeforeExpand(object sender, TreeViewCancelEventArgs e)
         {
             AddTreeViewItems(e.Node);
-
-
-
         }
+
         private void AddTreeViewItems(TreeNode e)
         {
             if (e.Name == ComputerName)
@@ -437,6 +430,7 @@ namespace WMIGetComputerInfo
             }
             else
             {
+                #region
                 //ChildNode 1
                 if (e.Name == "Hardware" || e.Name == "DataStorage" || e.Name == "Memory" || e.Name == "Network" || e.Name == "SystemInfo" || e.Name == "UserAndSecurity" || e.Name == "Developer")
                 {
@@ -465,15 +459,13 @@ namespace WMIGetComputerInfo
                     }
                     if (count > 0)
                     {
-                        //attributeTree.Invoke(new Add(_AddDeviceAndServiceName),new object[] { e });
-                        //_AddDeviceAndServiceName(e);
-                        clickNode = e;
-                        test(e);
+                        AddNameNode(e);
                     }
                     else
                     {
+                        #region
                         //ChildNode Device or Services Name
-                        InforMationView.Items.Clear();
+                        InforMationView.Items.Clear();//!!!!!!!!!!!!!!!!!!!!!!!change
 
                         //Deal with old tree node logic
                         if (e == oldChildNode)
@@ -482,6 +474,8 @@ namespace WMIGetComputerInfo
                         }
                         else
                         {
+                            //Add "+" symbol ahead of the node name
+                            #region
                             if (oldChildNode == null)
                             {
                                 oldChildNode = e;
@@ -496,201 +490,49 @@ namespace WMIGetComputerInfo
                                 //renew oldChildNode
                                 oldChildNode = e;
                             }
+                            #endregion
 
-                            //update ListView
-                            string tmpString = string.Format(@"select * from {0} where Name = '{1}'", e.Parent.Name, e.Name.AsQueryable());
-                            //build Query String
-                            string queryString = tmpString.Replace(@"\", @"\\");
+                            //AddListView
+                            AddListView(e);
 
-                            ManagementObjectSearcher searcher = new ManagementObjectSearcher(queryString);
-
-                            foreach (ManagementObject result in searcher.Get())
-                            {
-                                ListViewGroup lvg = new ListViewGroup();
-                                try
-                                {
-                                    lvg = InforMationView.Groups.Add(result["Name"].ToString(), result["Name"].ToString());
-
-                                }
-                                catch
-                                {
-                                    lvg = InforMationView.Groups.Add(result.ToString(), result.ToString());
-                                }
-                                if (result.Properties.Count <= 0)
-                                {
-                                    MessageBox.Show("No Info");
-                                }
-
-                                foreach (PropertyData pd in result.Properties)
-                                {
-                                    ListViewItem item = new ListViewItem(lvg);
-
-                                    if (InforMationView.Items.Count % 2 == 0)
-                                    {
-                                        item.BackColor = Color.LightBlue;
-                                    }
-                                    else
-                                    {
-                                        item.BackColor = Color.LightYellow;
-                                    }
-
-                                    item.Text = pd.Name;
-
-                                    if (pd.Value != null && pd.Value.ToString() != "")
-                                    {
-                                        switch (pd.Value.GetType().ToString())
-                                        {
-                                            case "System.String[]":
-
-                                                item.SubItems.Add(String.Join(" ", (string[])pd.Value));
-
-                                                break;
-
-                                            case "System.UInt16[]":
-
-                                                ushort[] ushorts = (ushort[])pd.Value;
-                                                string res = String.Empty;
-                                                foreach (ushort us in ushorts)
-                                                {
-                                                    res += us.ToString() + " ";
-                                                }
-                                                item.SubItems.Add(res);
-
-                                                break;
-
-                                            default:
-
-                                                item.SubItems.Add(pd.Value.ToString());
-
-                                                break;
-                                        }
-                                    }
-                                    InforMationView.Items.Add(item);
-                                }
-                            }
+                            //Clear Empty Nodes
+                            e.Nodes.Clear();
                         }
+                        #endregion
                     }
                 }
+                #endregion
             }
         }
 
-        protected TreeNode clickNode;
-
-        private void _AddDeviceAndServiceName(TreeNode e)
-        {
-
-            clickNode = e;
-            Thread t1 = new Thread(new ThreadStart(searchData));
-            t1.Start();
-        }
-
-        private void searchData()
-        {
-            TreeNode e = clickNode;
-            try
-            {
-                ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from " + e.Name);
-                foreach (ManagementObject res in searcher.Get())
-                {
-                    
-                    attributeTree.Invoke(new _addNodes(addNodes), new object[] { e, res["Name"].ToString() });
-                    //TreeNode tn = new TreeNode();
-                    //string name = res["Name"].ToString();
-                    //tn.Name = name;
-                    //tn.Text = name;
-                    //tn.Tag = name;
-
-                    //e.Nodes.Add(tn);
-                    //tn.Nodes.Add("");
-                }
-            }
-            catch(Exception except)
-            {
-                MessageBox.Show(except.Message);
-            }
-        }
-
-        private delegate void _addNodes(TreeNode e, string name);
-
-        private void addNodes(TreeNode e, string name)
-        {
-            Controls.AddRange(new Control[] { attributeTree });
-            TreeNode tn = new TreeNode();
-            //string name = res["Name"].ToString();
-            tn.Name = name;
-            tn.Text = name;
-            tn.Tag = name;
-
-            e.Nodes.Add(tn);
-            tn.Nodes.Add("");
-        }
-
-        //private void test(TreeNode e)
-        //{
-        //    using(BackgroundWorker bw = new BackgroundWorker())
-        //    {
-        //        bw.RunWorkerCompleted += new RunWorkerCompletedEventHandler(WorkComplete);
-        //        bw.DoWork += new DoWorkEventHandler(DoWork);
-        //        bw.WorkerReportsProgress.ToString();
-        //        bw.RunWorkerAsync(e);
-        //    }
-        //}
-
-        //private void DoWork(object sender, DoWorkEventArgs events)
-        //{
-        //    ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from " + ((TreeNode)events.Argument).Name);
-        //    object[] res = { searcher.Get(), events.Argument };
-        //    events.Result = res;
-        //}
-
-        //private void WorkComplete(object sender, RunWorkerCompletedEventArgs events)
-        //{
-        //    object[] result = (object[])events.Result;
-        //    try
-        //    {
-        //        TreeNode e = (TreeNode)result[1];
-
-        //        foreach (ManagementObject res in (ManagementObjectCollection)result[0])
-        //        {
-        //            TreeNode tn = new TreeNode();
-        //            string name = res["Name"].ToString();
-        //            tn.Name = name;
-        //            tn.Text = name;
-        //            tn.Tag = name;
-
-        //            e.Nodes.Add(tn);
-        //            tn.Nodes.Add("");
-        //        }
-        //        e.Expand();
-        //    }
-        //    catch (Exception exc)
-        //    {
-        //        MessageBox.Show(exc.Message);
-        //    }
-        //}
-
-        private void test(TreeNode e)
+        //Add Name Node Async Function
+        #region
+        private void AddNameNode(TreeNode e)
         {
             using(BackgroundWorker bw = new BackgroundWorker())
             {
-                bw.DoWork += new DoWorkEventHandler(DoWork);
-                bw.RunWorkerCompleted += new RunWorkerCompletedEventHandler(WorkComplete);
+                bw.DoWork += new DoWorkEventHandler(AddNameNodeDoWork);
+                bw.RunWorkerCompleted += new RunWorkerCompletedEventHandler(AddNameNodeWorkComplete);
                 bw.RunWorkerAsync(e);
             }
         }
 
-        private void DoWork(object sender,DoWorkEventArgs events)
+        private void AddNameNodeDoWork(object sender,DoWorkEventArgs events)
         {
             ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from " + ((TreeNode)events.Argument).Name);
             try
             {
+                //Get Device Or Service Name by Api
                 string[] result = new string[searcher.Get().Count];
                 int count = 0;
                 foreach (ManagementObject res in searcher.Get())
                 {
                     result[count++] = res["Name"].ToString();
                 }
-                events.Result = result;
+
+                //Put Name Array
+                object[] results = { result, events.Argument };
+                events.Result = results;
             }
             catch (Exception exc)
             {
@@ -698,12 +540,17 @@ namespace WMIGetComputerInfo
             }
         }
 
-        private void WorkComplete(object sender,RunWorkerCompletedEventArgs events)
+        private void AddNameNodeWorkComplete(object sender,RunWorkerCompletedEventArgs events)
         {
             try
             {
-                TreeNode e = clickNode;
-                foreach (string name in (string[])events.Result)
+                object[] res = (object[])events.Result;
+                string[] result = (string[])res[0];
+                TreeNode e = (TreeNode)res[1];
+
+                e.Nodes.Clear();
+                //Add Name Node
+                foreach (string name in result)
                 {
                     TreeNode tn = new TreeNode();
                     tn.Name = name;
@@ -713,9 +560,126 @@ namespace WMIGetComputerInfo
                     e.Nodes.Add(tn);
                     tn.Nodes.Add("");
                 }
+
+                e.Expand();
             }
             catch { }
         }
+
+        #endregion
+
+        //Search Information And Add ListView Function
+        #region
+        private void AddListView(TreeNode e)
+        {
+            using(BackgroundWorker bw = new BackgroundWorker())
+            {
+                bw.DoWork += new DoWorkEventHandler(AddListViewDoWork);
+                bw.RunWorkerCompleted += new RunWorkerCompletedEventHandler(AddListViewWorkComplete);
+                bw.RunWorkerAsync(e);
+            }
+        }
+
+        private void AddListViewDoWork(object sender,DoWorkEventArgs events)
+        {
+            TreeNode e = (TreeNode)events.Argument;
+            List<ManagementObject> results = new List<ManagementObject>();
+
+            //Build Query String
+            string tmpString = string.Format(@"select * from {0} where Name = '{1}'", e.Parent.Name, e.Name.AsQueryable());
+            string queryString = tmpString.Replace(@"\", @"\\");
+
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher(queryString);
+
+            #region
+            foreach (ManagementObject result in searcher.Get())
+            {
+                results.Add(result);
+            }
+            #endregion
+            events.Result = results;
+        }
+
+        private void AddListViewWorkComplete(object sender,RunWorkerCompletedEventArgs events)
+        {
+            List<ManagementObject> _items = (List<ManagementObject>)events.Result;
+
+            foreach(ManagementObject result in _items)
+            {
+                //Add Title
+                ListViewGroup lvg = new ListViewGroup();
+                #region
+                try
+                {
+                    lvg = InforMationView.Groups.Add(result["Name"].ToString(), result["Name"].ToString());
+
+                }
+                catch
+                {
+                    lvg = InforMationView.Groups.Add(result.ToString(), result.ToString());
+                }
+                if (result.Properties.Count <= 0)
+                {
+                    MessageBox.Show("No Info");
+                }
+                #endregion
+
+                //Add Data
+                #region
+                foreach (PropertyData pd in result.Properties)
+                {
+                    ListViewItem item = new ListViewItem(lvg);
+
+                    if (InforMationView.Items.Count % 2 == 0)
+                    {
+                        item.BackColor = Color.LightBlue;
+                    }
+                    else
+                    {
+                        item.BackColor = Color.LightYellow;
+                    }
+
+                    item.Text = pd.Name;
+
+                    //Build result Text
+                    #region
+                    if (pd.Value != null && pd.Value.ToString() != "")
+                    {
+                        switch (pd.Value.GetType().ToString())
+                        {
+                            case "System.String[]":
+
+                                item.SubItems.Add(String.Join(" ", (string[])pd.Value));
+
+                                break;
+
+                            case "System.UInt16[]":
+
+                                ushort[] ushorts = (ushort[])pd.Value;
+                                string res = String.Empty;
+                                foreach (ushort us in ushorts)
+                                {
+                                    res += us.ToString() + " ";
+                                }
+                                item.SubItems.Add(res);
+
+                                break;
+
+                            default:
+
+                                item.SubItems.Add(pd.Value.ToString());
+
+                                break;
+                        }
+                    }
+                    #endregion
+
+                    InforMationView.Items.Add(item);
+                }
+                #endregion
+            }
+        }
+        #endregion
     }
 }
 //無效類，提供的程序無法進行操作等，是否可以在程序沒有運行的時候清除這些分支
