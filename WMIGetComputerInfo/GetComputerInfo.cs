@@ -546,16 +546,20 @@ namespace WMIGetComputerInfo
             }
             catch (Exception exc)
             {
-                MessageBox.Show(exc.Message);
+                MessageBox.Show(((TreeNode)events.Argument).Name+" "+exc.Message);
+                //Send Error Node
+                object[] results = { null, events.Argument };
+                events.Result = results;
             }
         }
 
-        private void AddNameNodeWorkComplete(object sender,RunWorkerCompletedEventArgs events)
+        private void AddNameNodeWorkComplete(object sender, RunWorkerCompletedEventArgs events)
         {
             try
             {
                 object[] res = (object[])events.Result;
                 string[] result = (string[])res[0];
+
                 TreeNode e = (TreeNode)res[1];
 
                 e.Nodes.Clear();
@@ -573,7 +577,13 @@ namespace WMIGetComputerInfo
 
                 e.Expand();
             }
-            catch { }
+            catch
+            {
+                //Get And Delete Error Node
+                object[] res = (object[])events.Result;
+                TreeNode e = (TreeNode)res[1];
+                e.Remove();
+            }
         }
 
         #endregion
