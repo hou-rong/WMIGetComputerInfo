@@ -1,16 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Management;
-using System.IO;
 using System.Text.RegularExpressions;
-using System.Threading;
 
 namespace WMIGetComputerInfo
 {
@@ -25,6 +20,9 @@ namespace WMIGetComputerInfo
             InitializeComponent();
         }
 
+        /// <summary>
+        /// Init System Management Query Api Name Directory
+        /// </summary>
         private void InitDictionary()
         {
             //Query String Name Directory
@@ -341,6 +339,11 @@ namespace WMIGetComputerInfo
             searchQuery.Add("Developer", developerValue);
         }
 
+        /// <summary>
+        /// Create GetComputerInfo Form
+        /// </summary>
+        /// <param name="sender">Sender Object</param>
+        /// <param name="e">Events Arguments</param>
         private void Form1_Load(object sender, EventArgs e)
         {
             ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from Win32_ComputerSystem");
@@ -417,11 +420,20 @@ namespace WMIGetComputerInfo
             rootNode.Expand();
         }
 
+        /// <summary>
+        /// Init Child Nodes Before Expend
+        /// </summary>
+        /// <param name="sender">Sender Object</param>
+        /// <param name="e">Events Arguments</param>
         private void attributeTree_BeforeExpand(object sender, TreeViewCancelEventArgs e)
         {
             AddTreeViewItems(e.Node);
         }
 
+        /// <summary>
+        /// Init Child Node Function
+        /// </summary>
+        /// <param name="e">Clicked TreeNode</param>
         private void AddTreeViewItems(TreeNode e)
         {
             if (e.Name == ComputerName)
@@ -430,8 +442,7 @@ namespace WMIGetComputerInfo
             }
             else
             {
-                #region
-                //ChildNode 1
+                #region ChildNode
                 if (e.Name == "Hardware" || e.Name == "DataStorage" || e.Name == "Memory" || e.Name == "Network" || e.Name == "SystemInfo" || e.Name == "UserAndSecurity" || e.Name == "Developer")
                 {
                     e.Nodes.Clear();
@@ -449,8 +460,7 @@ namespace WMIGetComputerInfo
                 }
                 else
                 {
-                    //ChildNode API_NAME
-                    //e.Nodes.Clear();
+                    #region ChildNode API_NAME
 
                     int count = 0;
                     foreach (var a in Regex.Matches(e.Name, "Win32_"))
@@ -463,19 +473,15 @@ namespace WMIGetComputerInfo
                     }
                     else
                     {
-                        #region
-                        //ChildNode Device or Services Name
-                        InforMationView.Items.Clear();//!!!!!!!!!!!!!!!!!!!!!!!change
-
+                        #region ChildNode Device or Services Name
                         //Deal with old tree node logic
                         if (e == oldChildNode)
                         {
-                            //跳過
+                            //Skip
                         }
                         else
                         {
-                            //Add "+" symbol ahead of the node name
-                            #region
+                            #region Add "+" symbol ahead of the node name
                             if (oldChildNode == null)
                             {
                                 oldChildNode = e;
@@ -500,13 +506,17 @@ namespace WMIGetComputerInfo
                         }
                         #endregion
                     }
+                    #endregion
                 }
                 #endregion
             }
         }
 
-        //Add Name Node Async Function
-        #region
+        #region Add Name Node Async Function
+        /// <summary>
+        /// Add Services Or Devices Name For Afferent TreeNode
+        /// </summary>
+        /// <param name="e">Afferent TreeNode</param>
         private void AddNameNode(TreeNode e)
         {
             using(BackgroundWorker bw = new BackgroundWorker())
@@ -568,8 +578,11 @@ namespace WMIGetComputerInfo
 
         #endregion
 
-        //Search Information And Add ListView Function
-        #region
+        #region Search Information And Add ListView Function
+        /// <summary>
+        /// Init ListView For Afferent TreeNode
+        /// </summary>
+        /// <param name="e">Afferent TreeNode</param>
         private void AddListView(TreeNode e)
         {
             using(BackgroundWorker bw = new BackgroundWorker())
@@ -602,13 +615,15 @@ namespace WMIGetComputerInfo
 
         private void AddListViewWorkComplete(object sender,RunWorkerCompletedEventArgs events)
         {
+            //Clear Items
+            InforMationView.Items.Clear();
+
             List<ManagementObject> _items = (List<ManagementObject>)events.Result;
 
             foreach(ManagementObject result in _items)
             {
-                //Add Title
+                #region Add Title
                 ListViewGroup lvg = new ListViewGroup();
-                #region
                 try
                 {
                     lvg = InforMationView.Groups.Add(result["Name"].ToString(), result["Name"].ToString());
@@ -624,8 +639,7 @@ namespace WMIGetComputerInfo
                 }
                 #endregion
 
-                //Add Data
-                #region
+                #region Add Data
                 foreach (PropertyData pd in result.Properties)
                 {
                     ListViewItem item = new ListViewItem(lvg);
