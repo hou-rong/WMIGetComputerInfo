@@ -758,14 +758,17 @@ namespace WMIGetComputerInfo
                         }
                         catch
                         {
-                            Action actionDelegate = () =>
+                            if (attributeTree.InvokeRequired)
                             {
-                                this.attributeTree.Nodes[0].Nodes[classfication.Name].Nodes[devicesAndServicesName.Name].Remove();
-                            };
+                                Action actionDelegate = () =>
+                                {
+                                    this.attributeTree.Nodes[0].Nodes[classfication.Name].Nodes[devicesAndServicesName.Name].Remove();
+                                };
 
-                            ErrorApiName.Add(devicesAndServicesName.Name.ToString());
+                                ErrorApiName.Add(devicesAndServicesName.Name.ToString());
 
-                            this.attributeTree.BeginInvoke(actionDelegate);
+                                this.attributeTree.BeginInvoke(actionDelegate);
+                            }
                         }
                     }
                 }
