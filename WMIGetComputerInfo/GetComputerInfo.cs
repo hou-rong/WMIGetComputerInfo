@@ -6,6 +6,7 @@ using System.Linq;
 using System.Windows.Forms;
 using System.Management;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace WMIGetComputerInfo
 {
@@ -14,6 +15,7 @@ namespace WMIGetComputerInfo
         public string ComputerName = string.Empty;
         Dictionary<string, string[]> searchQuery = new Dictionary<string, string[]>();
         TreeNode oldChildNode;
+        List<string> ErrorApiName = new List<string>();
 
         public GetComputerInfo()
         {
@@ -418,6 +420,14 @@ namespace WMIGetComputerInfo
             InitDictionary();
 
             rootNode.Expand();
+
+            //Add Api Name Node
+            foreach(TreeNode node in rootNode.Nodes)
+            {
+                AddApiNameNode(node);
+            }
+
+            DeleteErrorApiNameNode();
         }
 
         /// <summary>
@@ -445,18 +455,7 @@ namespace WMIGetComputerInfo
                 #region ChildNode
                 if (e.Name == "Hardware" || e.Name == "DataStorage" || e.Name == "Memory" || e.Name == "Network" || e.Name == "SystemInfo" || e.Name == "UserAndSecurity" || e.Name == "Developer")
                 {
-                    e.Nodes.Clear();
-
-                    foreach (string nodeName in searchQuery[e.Name])
-                    {
-                        TreeNode tn = new TreeNode();
-                        tn.Name = nodeName;
-                        tn.Text = nodeName;
-                        tn.Tag = nodeName;
-
-                        e.Nodes.Add(tn);
-                        tn.Nodes.Add("");
-                    }
+                    //API Name Node
                 }
                 else
                 {
@@ -529,7 +528,7 @@ namespace WMIGetComputerInfo
 
         private void AddNameNodeDoWork(object sender,DoWorkEventArgs events)
         {
-            ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from " + ((TreeNode)events.Argument).Name);
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher("select Name from " + ((TreeNode)events.Argument).Name);
             try
             {
                 //Get Device Or Service Name by Api
@@ -704,7 +703,75 @@ namespace WMIGetComputerInfo
             }
         }
         #endregion
+
+        #region Add Api Name Node
+        /// <summary>
+        /// Add Api Name Node
+        /// </summary>
+        /// <param name="e">Afferent TreeNode</param>
+        private void AddApiNameNode(TreeNode e)
+        {
+            e.Nodes.Clear();
+
+            foreach(string nodeName in searchQuery[e.Name])
+            {
+                TreeNode tn = new TreeNode();
+
+                tn.Name = nodeName;
+                tn.Text = nodeName;
+                tn.Tag = nodeName;
+
+                e.Nodes.Add(tn);
+                tn.Nodes.Add("");
+            }
+        }
+        #endregion
+
+        #region Delete Error Api Name Node
+        /// <summary>
+        /// Delete Error Api Name Node
+        /// </summary>
+        private void DeleteErrorApiNameNode()
+        {
+            Thread thread = new Thread(new ParameterizedThreadStart(DeleteErrorApiNameNodeThreadWork));
+            thread.Priority = ThreadPriority.AboveNormal;
+            thread.Start("Delete Error Nodes");
+        }
+
+        /// <summary>
+        /// Delete Error Api Name Worker Work
+        /// </summary>
+        /// <param name="str">Worker Name</param>
+        private void DeleteErrorApiNameNodeThreadWork(object str)
+        {
+            TreeNode root = this.attributeTree.Nodes[0];
+            foreach (TreeNode classfication in root.Nodes)
+            {
+                foreach (TreeNode devicesAndServicesName in classfication.Nodes)
+                {
+                    if (devicesAndServicesName != null)
+                    {
+                        try
+                        {
+                            ManagementObjectSearcher searcher = new ManagementObjectSearcher("select Name from " + devicesAndServicesName.Name);
+                            int count = searcher.Get().Count;
+                        }
+                        catch
+                        {
+                            Action actionDelegate = () =>
+                            {
+                                this.attributeTree.Nodes[0].Nodes[classfication.Name].Nodes[devicesAndServicesName.Name].Remove();
+                            };
+
+                            ErrorApiName.Add(devicesAndServicesName.Name.ToString());
+
+                            this.attributeTree.BeginInvoke(actionDelegate);
+                        }
+                    }
+                }
+            }
+        }
+        #endregion
     }
 }
-//無效類，提供的程序無法進行操作等，是否可以在程序沒有運行的時候清除這些分支
 //搜索出來的結果中有Name相同的，導致右側欄目多打印了
