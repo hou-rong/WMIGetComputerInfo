@@ -775,3 +775,5 @@ namespace WMIGetComputerInfo
     }
 }
 //搜索出來的結果中有Name相同的，導致右側欄目多打印了
+//維護ErrorApiName
+//重寫關閉程序的過程，關閉thread，打印不能使用的api
