@@ -80,6 +80,7 @@
             this.Controls.Add(this.progressBar1);
             this.Controls.Add(this.InforMationView);
             this.Controls.Add(this.attributeTree);
+            this.MaximizeBox = false;
             this.Name = "GetComputerInfo";
             this.Text = "GetComputerInfo";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.GetComputerInfo_FormClosing);
