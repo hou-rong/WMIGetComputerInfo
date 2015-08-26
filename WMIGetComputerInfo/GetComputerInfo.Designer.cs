@@ -82,6 +82,7 @@
             this.Controls.Add(this.attributeTree);
             this.Name = "GetComputerInfo";
             this.Text = "GetComputerInfo";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.GetComputerInfo_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.ResumeLayout(false);
 

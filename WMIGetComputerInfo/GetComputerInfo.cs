@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using System.Management;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Text;
 
 namespace WMIGetComputerInfo
 {
@@ -15,7 +16,7 @@ namespace WMIGetComputerInfo
         public string ComputerName = string.Empty;
         Dictionary<string, string[]> searchQuery = new Dictionary<string, string[]>();
         TreeNode oldChildNode;
-        List<string> ErrorApiName = new List<string>();
+        List<string> ErrorApiNames = new List<string>();
 
         public GetComputerInfo()
         {
@@ -441,6 +442,25 @@ namespace WMIGetComputerInfo
         }
 
         /// <summary>
+        /// Close The Form And Exit The Thread
+        /// </summary>
+        /// <param name="sender">Sender Object</param>
+        /// <param name="e">Events Argument</param>
+        private void GetComputerInfo_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            //Show Error Api Name
+            StringBuilder sb = new StringBuilder();
+            foreach(string errorApiName in ErrorApiNames)
+            {
+                sb.Append(errorApiName + "\n");
+            }
+            MessageBox.Show("Error Api Name\n" + sb);
+
+            //Exit Application
+            Environment.Exit(0);
+        }
+
+        /// <summary>
         /// Init Child Node Function
         /// </summary>
         /// <param name="e">Clicked TreeNode</param>
@@ -581,6 +601,10 @@ namespace WMIGetComputerInfo
                 //Get And Delete Error Node
                 object[] res = (object[])events.Result;
                 TreeNode e = (TreeNode)res[1];
+
+                //Add Error Api Names
+                ErrorApiNames.Add(e.Name);
+
                 e.Remove();
             }
         }
@@ -733,9 +757,10 @@ namespace WMIGetComputerInfo
         /// </summary>
         private void DeleteErrorApiNameNode()
         {
-            Thread thread = new Thread(new ParameterizedThreadStart(DeleteErrorApiNameNodeThreadWork));
-            thread.Priority = ThreadPriority.AboveNormal;
-            thread.Start("Delete Error Nodes");
+            Thread deleteErrorApiThread;
+            deleteErrorApiThread = new Thread(new ParameterizedThreadStart(DeleteErrorApiNameNodeThreadWork));
+            deleteErrorApiThread.Priority = ThreadPriority.AboveNormal;
+            deleteErrorApiThread.Start("Delete Error Nodes");
         }
 
         /// <summary>
@@ -765,7 +790,7 @@ namespace WMIGetComputerInfo
                                     this.attributeTree.Nodes[0].Nodes[classfication.Name].Nodes[devicesAndServicesName.Name].Remove();
                                 };
 
-                                ErrorApiName.Add(devicesAndServicesName.Name.ToString());
+                                ErrorApiNames.Add(devicesAndServicesName.Name.ToString());
 
                                 this.attributeTree.BeginInvoke(actionDelegate);
                             }
@@ -778,5 +803,3 @@ namespace WMIGetComputerInfo
     }
 }
 //搜索出來的結果中有Name相同的，導致右側欄目多打印了
-//維護ErrorApiName
-//重寫關閉程序的過程，關閉thread，打印不能使用的api
