@@ -8,15 +8,18 @@ using System.Management;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Text;
+using System.IO;
 
 namespace WMIGetComputerInfo
 {
     public partial class GetComputerInfo : Form
     {
-        public string ComputerName = string.Empty;
+        public string ComputerName;
         Dictionary<string, string[]> searchQuery = new Dictionary<string, string[]>();
         TreeNode oldChildNode;
-        List<string> ErrorApiNames = new List<string>();
+        List<string> ErrorApiNames;
+        string ErrorApiNamesFileName = Environment.CurrentDirectory + @"\ErrorApiName.db";
+        string ComputerNameFileName = Environment.CurrentDirectory + @"\ComputerName.db";
 
         public GetComputerInfo()
         {
@@ -343,14 +346,30 @@ namespace WMIGetComputerInfo
         }
 
         /// <summary>
-        /// Create GetComputerInfo Form
+        /// Init Error API Name File
         /// </summary>
-        /// <param name="sender">Sender Object</param>
-        /// <param name="e">Events Arguments</param>
-        private void Form1_Load(object sender, EventArgs e)
+        private void InitErrorApiName()
         {
+            if (File.Exists(ErrorApiNamesFileName))
+            {
+                ErrorApiNames = new List<string>(File.ReadAllLines(ErrorApiNamesFileName));
+
+            }
+            else
+            {
+                ErrorApiNames = new List<string>();
+            }
+        }
+
+        /// <summary>
+        /// Init Computer Name File
+        /// </summary>
+        private void InitComputerName()
+        {
+            //Get Computer Name
             ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from Win32_ComputerSystem");
-            TreeNode rootNode = new TreeNode();
+            string ComputerNameInFile;
+
             foreach (var name in searcher.Get())
             {
                 ComputerName = name["Name"].ToString();
@@ -360,6 +379,35 @@ namespace WMIGetComputerInfo
             {
                 ComputerName = "MyComputer";
             }
+
+            //Check If the File is this computer
+            if (File.Exists(ComputerNameFileName))
+            {
+                ComputerNameInFile = File.ReadAllText(ComputerNameFileName);
+
+                //If not Delete if
+                if(ComputerNameInFile!=ComputerName && File.Exists(ErrorApiNamesFileName))
+                {
+                    File.WriteAllText(ComputerNameFileName,ComputerName);
+                    File.Delete(ErrorApiNamesFileName);
+                }
+            }
+            else
+            {
+                //Write Computer Name File
+                File.WriteAllText(ComputerNameFileName,ComputerName);
+            }
+        }
+
+        /// <summary>
+        /// Create GetComputerInfo Form
+        /// </summary>
+        /// <param name="sender">Sender Object</param>
+        /// <param name="e">Events Arguments</param>
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            InitComputerName();
+            TreeNode rootNode = new TreeNode();
 
             rootNode.Name = ComputerName;
             rootNode.Text = ComputerName;
@@ -422,8 +470,10 @@ namespace WMIGetComputerInfo
 
             rootNode.Expand();
 
+            InitErrorApiName();
+
             //Add Api Name Node
-            foreach(TreeNode node in rootNode.Nodes)
+            foreach (TreeNode node in rootNode.Nodes)
             {
                 AddApiNameNode(node);
             }
@@ -450,11 +500,16 @@ namespace WMIGetComputerInfo
         {
             //Show Error Api Name
             StringBuilder sb = new StringBuilder();
+            //Save Error Api Name
+            File.WriteAllLines(ErrorApiNamesFileName, ErrorApiNames);
+
             foreach(string errorApiName in ErrorApiNames)
             {
                 sb.Append(errorApiName + "\n");
             }
+#if DEBUG
             MessageBox.Show("Error Api Name\n" + sb);
+#endif
 
             //Exit Application
             Environment.Exit(0);
@@ -472,14 +527,14 @@ namespace WMIGetComputerInfo
             }
             else
             {
-                #region ChildNode
+#region ChildNode
                 if (e.Name == "Hardware" || e.Name == "DataStorage" || e.Name == "Memory" || e.Name == "Network" || e.Name == "SystemInfo" || e.Name == "UserAndSecurity" || e.Name == "Developer")
                 {
                     //API Name Node
                 }
                 else
                 {
-                    #region ChildNode API_NAME
+#region ChildNode API_NAME
 
                     int count = 0;
                     foreach (var a in Regex.Matches(e.Name, "Win32_"))
@@ -492,7 +547,7 @@ namespace WMIGetComputerInfo
                     }
                     else
                     {
-                        #region ChildNode Device or Services Name
+#region ChildNode Device or Services Name
                         //Deal with old tree node logic
                         if (e == oldChildNode)
                         {
@@ -500,7 +555,7 @@ namespace WMIGetComputerInfo
                         }
                         else
                         {
-                            #region Add "+" symbol ahead of the node name
+#region Add "+" symbol ahead of the node name
                             if (oldChildNode == null)
                             {
                                 oldChildNode = e;
@@ -515,7 +570,7 @@ namespace WMIGetComputerInfo
                                 //renew oldChildNode
                                 oldChildNode = e;
                             }
-                            #endregion
+#endregion
 
                             //AddListView
                             AddListView(e);
@@ -523,15 +578,15 @@ namespace WMIGetComputerInfo
                             //Clear Empty Nodes
                             e.Nodes.Clear();
                         }
-                        #endregion
+#endregion
                     }
-                    #endregion
+#endregion
                 }
-                #endregion
+#endregion
             }
         }
 
-        #region Add Name Node Async Function
+#region Add Name Node Async Function
         /// <summary>
         /// Add Services Or Devices Name For Afferent TreeNode
         /// </summary>
@@ -603,15 +658,20 @@ namespace WMIGetComputerInfo
                 TreeNode e = (TreeNode)res[1];
 
                 //Add Error Api Names
-                ErrorApiNames.Add(e.Name);
+                if (!ErrorApiNames.Contains(e.Name))
+                {
+                    ErrorApiNames.Add(e.Name);
+                }
 
                 e.Remove();
+
+                GC.Collect();
             }
         }
 
-        #endregion
+#endregion
 
-        #region Search Information And Add ListView Function
+#region Search Information And Add ListView Function
         /// <summary>
         /// Init ListView For Afferent TreeNode
         /// </summary>
@@ -637,12 +697,12 @@ namespace WMIGetComputerInfo
 
             ManagementObjectSearcher searcher = new ManagementObjectSearcher(queryString);
 
-            #region
+#region
             foreach (ManagementObject result in searcher.Get())
             {
                 results.Add(result);
             }
-            #endregion
+#endregion
             events.Result = results;
         }
 
@@ -655,7 +715,7 @@ namespace WMIGetComputerInfo
 
             foreach(ManagementObject result in _items)
             {
-                #region Add Title
+#region Add Title
                 ListViewGroup lvg = new ListViewGroup();
                 try
                 {
@@ -670,9 +730,9 @@ namespace WMIGetComputerInfo
                 {
                     MessageBox.Show("No Info");
                 }
-                #endregion
+#endregion
 
-                #region Add Data
+#region Add Data
                 foreach (PropertyData pd in result.Properties)
                 {
                     ListViewItem item = new ListViewItem(lvg);
@@ -689,7 +749,7 @@ namespace WMIGetComputerInfo
                     item.Text = pd.Name;
 
                     //Build result Text
-                    #region
+#region
                     if (pd.Value != null && pd.Value.ToString() != "")
                     {
                         switch (pd.Value.GetType().ToString())
@@ -719,16 +779,16 @@ namespace WMIGetComputerInfo
                                 break;
                         }
                     }
-                    #endregion
+#endregion
 
                     InforMationView.Items.Add(item);
                 }
-                #endregion
+#endregion
             }
         }
-        #endregion
+#endregion
 
-        #region Add Api Name Node
+#region Add Api Name Node
         /// <summary>
         /// Add Api Name Node
         /// </summary>
@@ -739,19 +799,22 @@ namespace WMIGetComputerInfo
 
             foreach(string nodeName in searchQuery[e.Name])
             {
-                TreeNode tn = new TreeNode();
+                if (!ErrorApiNames.Contains(nodeName))
+                {
+                    TreeNode tn = new TreeNode();
 
-                tn.Name = nodeName;
-                tn.Text = nodeName;
-                tn.Tag = nodeName;
+                    tn.Name = nodeName;
+                    tn.Text = nodeName;
+                    tn.Tag = nodeName;
 
-                e.Nodes.Add(tn);
-                tn.Nodes.Add("");
+                    e.Nodes.Add(tn);
+                    tn.Nodes.Add("");
+                }
             }
         }
-        #endregion
+#endregion
 
-        #region Delete Error Api Name Node
+#region Delete Error Api Name Node
         /// <summary>
         /// Delete Error Api Name Node
         /// </summary>
@@ -774,7 +837,7 @@ namespace WMIGetComputerInfo
             {
                 foreach (TreeNode devicesAndServicesName in classfication.Nodes)
                 {
-                    if (devicesAndServicesName != null)
+                    if (devicesAndServicesName != null && !ErrorApiNames.Contains(devicesAndServicesName.Name))
                     {
                         try
                         {
@@ -794,12 +857,13 @@ namespace WMIGetComputerInfo
 
                                 this.attributeTree.BeginInvoke(actionDelegate);
                             }
+                            GC.Collect();
                         }
                     }
                 }
             }
         }
-        #endregion
+#endregion
     }
 }
 //搜索出來的結果中有Name相同的，導致右側欄目多打印了
